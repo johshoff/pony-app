@@ -1,5 +1,5 @@
-// Copyright 2014 pyros0928.  All rights reserved.
-// Use of this source code is governed by a MIT
+// Copyright 2014 pyros2097.  All rights reserved.
+// Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
 /*
@@ -28,6 +28,24 @@ format, which is covered by the license:
   MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
 
 */
+
+type  GLvoid      is      None
+type  GLchar      is      I8
+type  GLenum      is      U32
+type  GLboolean   is      U8
+type  GLbitfield  is      U32
+type  GLshort     is      I8
+type  GLint       is      I32
+type  GLsizei     is      I32
+type  GLushort    is      U8
+type  GLuint      is      U32
+type  GLbyte      is      I8
+type  GLubyte     is      U8
+type  GLfloat     is      F32
+type  GLclampf    is      F32
+type  GLfixed     is      I32
+type  GLintptr    is      I64
+type  GLsizeiptr  is      I64
 
 primitive Points                                      fun apply(): U16 => 0x0000
 primitive Lines                                       fun apply(): U16 => 0x0001

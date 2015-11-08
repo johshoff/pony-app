@@ -13,3 +13,31 @@ class Actor
   fun input() =>
     """
     """
+
+  // All Actions it can do
+  fun moveTo() =>
+    """"""
+  fun moveBy() =>
+    """"""
+  fun scaleTo() =>
+    """"""
+  fun scaleBy() =>
+    """"""
+  fun rotateTo() =>
+    """"""
+  fun rotateBy() =>
+    """"""
+  fun sizeTo() =>
+    """"""
+  fun sizeBy() =>
+    """"""
+  fun hide() =>
+    """"""
+  fun show() =>
+    """"""
+  fun alpha() =>
+    """"""
+  fun delay() =>
+    """"""
+  fun layout() =>
+    """"""

@@ -6,8 +6,14 @@
 
 static Atom wm_delete_window;
 
-static Window
-new_window(Display *x_dpy, EGLDisplay e_dpy, int w, int h, EGLContext *ctx, EGLSurface *surf, char* app_name) {
+typedef struct {
+  uint8_t code;
+  float x;
+  float y;
+} EGLEvent;
+
+EGLEvent
+createWindow(Display* x_dpy, EGLDisplay e_dpy, char* app_name, uint32_t w, uint32_t h) {
   static const EGLint attribs[] = {
     EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
     EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
@@ -70,51 +76,16 @@ new_window(Display *x_dpy, EGLDisplay e_dpy, int w, int h, EGLContext *ctx, EGLS
     EGL_CONTEXT_CLIENT_VERSION, 2,
     EGL_NONE
   };
-  *ctx = eglCreateContext(e_dpy, config, EGL_NO_CONTEXT, ctx_attribs);
-  if (!*ctx) {
+  EGLContext e_ctx = eglCreateContext(e_dpy, config, EGL_NO_CONTEXT, ctx_attribs);
+  if (!e_ctx) {
     fprintf(stderr, "eglCreateContext failed\n");
     exit(1);
   }
-  *surf = eglCreateWindowSurface(e_dpy, config, win, NULL);
-  if (!*surf) {
+  EGLSurface e_surf = eglCreateWindowSurface(e_dpy, config, win, NULL);
+  if (!e_surf) {
     fprintf(stderr, "eglCreateWindowSurface failed\n");
     exit(1);
   }
-  return win;
-}
-
-Display *x_dpy;
-EGLDisplay e_dpy;
-EGLContext e_ctx;
-EGLSurface e_surf;
-Window win;
-
-typedef struct {
-  uint8_t code;
-  float x;
-  float y;
-} EGLEvent;
-
-EGLEvent
-createWindow(Display* xapy, char* app_name, uint32_t w, uint32_t h) {
-  x_dpy = xapy;//XOpenDisplay(NULL);
-  // if (!x_dpy) {
-    // fprintf(stderr, "XOpenDisplay failed\n");
-    // exit(1);
-  // }
-  e_dpy = eglGetDisplay(x_dpy);
-  if (!e_dpy) {
-    fprintf(stderr, "eglGetDisplay failed\n");
-    exit(1);
-  }
-  EGLint e_major, e_minor;
-  if (!eglInitialize(e_dpy, &e_major, &e_minor)) {
-    fprintf(stderr, "eglInitialize failed\n");
-    exit(1);
-  }
-  printf("%x\n", EGL_OPENGL_ES_API);
-  eglBindAPI(EGL_OPENGL_ES_API);
-  win = new_window(x_dpy, e_dpy, w, h, &e_ctx, &e_surf, app_name);
 
   wm_delete_window = XInternAtom(x_dpy, "WM_DELETE_WINDOW", True);
   if (wm_delete_window != None) {
@@ -140,51 +111,54 @@ createWindow(Display* xapy, char* app_name, uint32_t w, uint32_t h) {
   }
 }
 
+void
+setEvent(EGLEvent e) {
+  printf("%d", e.code);
+}
+
 EGLEvent
-processEvents(void) {
+processEvents(Display* xapy) {
   EGLEvent e;
   e.code = 0;
-  while (XPending(x_dpy)) {
-    XEvent ev;
-    XNextEvent(x_dpy, &ev);
-    switch (ev.type) {
-    case ConfigureNotify:
-      e.code = 1;
-      e.x = (float)ev.xconfigure.width;
-      e.y = (float)ev.xconfigure.height;
-      break;
-    case ButtonPress:
-      e.code = 2;
-      e.x = (float)ev.xbutton.x;
-      e.y = (float)ev.xbutton.y;
-      break;
-    case MotionNotify:
-      e.code = 3;
-      e.x = (float)ev.xmotion.x;
-      e.y = (float)ev.xmotion.y;
-      break;
-    case ButtonRelease:
-      e.code = 4;
-      e.x = (float)ev.xbutton.x;
-      e.y = (float)ev.xbutton.y;
-      break;
-    case ClientMessage:
-      if (wm_delete_window != None && (Atom)ev.xclient.data.l[0] == wm_delete_window) {
-        e.code = 255;
-      }
-      break;
+  XEvent ev;
+  XNextEvent(xapy, &ev);
+  switch (ev.type) {
+  case ConfigureNotify:
+    e.code = 1;
+    e.x = (float)ev.xconfigure.width;
+    e.y = (float)ev.xconfigure.height;
+    break;
+  case ButtonPress:
+    e.code = 2;
+    e.x = (float)ev.xbutton.x;
+    e.y = (float)ev.xbutton.y;
+    break;
+  case MotionNotify:
+    e.code = 3;
+    e.x = (float)ev.xmotion.x;
+    e.y = (float)ev.xmotion.y;
+    break;
+  case ButtonRelease:
+    e.code = 4;
+    e.x = (float)ev.xbutton.x;
+    e.y = (float)ev.xbutton.y;
+    break;
+  case ClientMessage:
+    if (wm_delete_window != None && (Atom)ev.xclient.data.l[0] == wm_delete_window) {
+      e.code = 255;
     }
+    break;
   }
   return e;
 }
 
-void
-swapBuffers(void) {
-  if (eglSwapBuffers(e_dpy, e_surf) == EGL_FALSE) {
-    fprintf(stderr, "eglSwapBuffer failed\n");
-    exit(1);
-  }
-}
+// void
+// swapBuffers(void) {
+//   if (eglSwapBuffers(e_dpy, e_surf) == EGL_FALSE) {
+//     fprintf(stderr, "eglSwapBuffer failed\n");
+//     exit(1);
+//   }
+// }
 
 void createContext(EGLDisplay *out_dpy, EGLContext *out_ctx, EGLSurface *out_surf) {
   EGLDisplay e_dpy = eglGetDisplay(EGL_DEFAULT_DISPLAY);

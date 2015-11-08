@@ -1,33 +1,6 @@
-// trait Interpolation
-//   fun apply(a: F32): F32 => a
-//   fun apply_duration(start_val: F32, end_val: F32, a: F32): F32 => start_val + ((end_val - start_val) * apply(a))
+// primitive Fib
+  // fun apply(0): U64 => 0
 
-
-// class Linear is Interpolation
-
-// class Fade is Interpolation
-//   fun apply(a: F32): F32 =>
-//     a * a
-//      // MathUtils.clamp(a * a * a * (a * (a * 6 - 15) + 10), 0, 1);
-
-// class Pow is Interpolation
-//   let _pow: Number
-//   new create(pow: Number) =>
-//     _pow = pow
-//   fun apply(a: F32): F32 =>
-//     a
-//     // if (a <= 0.5f) return (float)Math.pow(a * 2, power) / 2;
-//     // return (float)Math.pow((a - 1) * 2, power) / (power % 2 == 0 ? -2 : 2) + 1;
-
-// class PowIn is Interpolation
-//   let _pow: Number
-//   new create(pow: Number) =>
-//     _pow = pow
-//   fun apply(a: F32): F32 =>
-//     a
-
-primitive GL
-  fun point(): U16 => 0x0000
 
 class Test
   let _env: Env
@@ -41,7 +14,7 @@ class Test
 
 actor Main
   new create(env: Env) =>
-    var sc : Scene ref = Scene
+    var sc : Scene = Scene("menu")
     App.start(env, sc)
         // env.out.print(GL.point().string())
     // env.out.print(GL(Lines).string())

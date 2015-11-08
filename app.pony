@@ -3,18 +3,38 @@ use "lib:X11" if linux
 use "path:./"
 use "lib:x11" if linux
 use "lib:GLESv2" if linux
+use "./gl"
 
 primitive EGLOpenGLESAPI fun apply(): U16 => 0x30A0
 primitive EGLNativeVisualID fun apply(): U16 => 0x302E
-primitive _DisplayHandle
-primitive _EGLHandle
+primitive _XDisplayHandle
+primitive _EGLDisplayHandle
 primitive _EGLConfigHandle
 type EGLEvent is (U8, F32, F32)
 type XEvent is (U8)
 
 primitive GLUtil
   fun createProgram(vertexSrc: String, fragmentSrc: String) =>
+    Lines()
     @glCreateProgram[U8]()
+
+trait TWidget
+  fun ref add_widget(w: TWidget)
+  fun ref remove_widget(w: TWidget) ?
+
+class Widget is TWidget
+
+  let _children: Array[TWidget] = Array[TWidget]
+
+  new create() =>
+    """
+    """
+
+  fun ref add_widget(w: TWidget) =>
+    _children.push(w)
+
+  fun ref remove_widget(w: TWidget) ? =>
+    _children.remove(_children.find(w), 1)
 
 primitive App
   """
@@ -30,21 +50,24 @@ primitive App
     On Android, these correspond to onCreate.
     """
     env.out.print("Starting App")
+    let b: Array[U32] = [4, 5, 6]
+    let e: EGLEvent = (4, 0, 0)
+    // @setEvent[None](e)
     // // env.out.print(@glCreateProgram[U8]().string())
-    let x_dpy = @XOpenDisplay[Pointer[_DisplayHandle]](U32(0))
+    let x_dpy = @XOpenDisplay[Pointer[_XDisplayHandle]](U32(0))
     if x_dpy.is_null() then
       env.out.print("XOpenDisplay failed")
     end
-    // let e_dpy = @eglGetDisplay[Pointer[_EGLHandle]](x_dpy)
-    // if e_dpy.is_null() then
-    //   env.out.print("eglGetDisplay failed")
-    // end
-    // if @eglInitialize[U32](e_dpy, Pointer[U32], Pointer[U32]) == 0 then
-    //   env.out.print("eglInitialize failed")
-    // end
-    // if @eglBindAPI[U32](EGLOpenGLESAPI()) == 0 then
-    //   env.out.print("eglBindAPI failed")
-    // end
+    let e_dpy = @eglGetDisplay[Pointer[_EGLDisplayHandle]](x_dpy)
+    if e_dpy.is_null() then
+      env.out.print("eglGetDisplay failed")
+    end
+    if @eglInitialize[U32](e_dpy, Pointer[U32], Pointer[U32]) == 0 then
+      env.out.print("eglInitialize failed")
+    end
+    if @eglBindAPI[U32](EGLOpenGLESAPI()) == 0 then
+      env.out.print("eglBindAPI failed")
+    end
     // let a = Array[U16](8)
     // a.push(0x3040)
     // a.push(0x4)
@@ -70,23 +93,21 @@ primitive App
     // end
     // GLUtil.createProgram()
     var running = true
-    (var c, var x, var y) = @createWindow[EGLEvent](x_dpy, "Demo".cstring(), U32(800), U32(480))
+    (var c, var x, var y) = @createWindow[EGLEvent](x_dpy, e_dpy, "Demo".cstring(), U32(800), U32(480))
     // _resize(env, y, x)
-    var b : XEvent = (0)
-    env.out.print(b.string())
+    // env.out.print(b.string())
     while running do
-      while @XPending[U32](x_dpy) == 1 do
-        env.out.print(b.string())
-        // @XNextEvent[None](x_dpy, b)
+      while @XPending[U32](x_dpy) > 0 do
+        // @XNextEvent[None](x_dpy, Pointer[_EGLConfigHandle])
+        (c, x, y) = @processEvents[EGLEvent](x_dpy)
+        match c
+        | 1 => _resize(env, y, x)
+        | 2 => _processInput(env, c, x, y)
+        | 3 => _processInput(env, c, x, y)
+        | 4 => _processInput(env, c, x, y)
+        | 255 => _exit(env); break
+        end
       end
-      // (c, x, y) = @processEvents[EGLEvent]()
-      // match c
-      // | 1 => _resize(env, y, x)
-      // | 2 => _processInput(env, c, x, y)
-      // | 3 => _processInput(env, c, x, y)
-      // | 4 => _processInput(env, c, x, y)
-      // | 255 => _exit(env); break
-      // end
     end
 
   fun _resize(env: Env, w: F32, h: F32) =>
