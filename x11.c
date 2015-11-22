@@ -12,21 +12,24 @@ typedef struct {
   float y;
 } EGLEvent;
 
+EGLContext e_ctx;
+EGLSurface e_surf;
+
 EGLEvent
 createWindow(Display* x_dpy, EGLDisplay e_dpy, char* app_name, uint32_t w, uint32_t h) {
   static const EGLint attribs[] = {
     EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
     EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
+    EGL_COLOR_BUFFER_TYPE,     EGL_RGB_BUFFER,
+    EGL_BUFFER_SIZE,           32,
     EGL_BLUE_SIZE, 8,
     EGL_GREEN_SIZE, 8,
     EGL_RED_SIZE, 8,
     EGL_DEPTH_SIZE, 16,
+    EGL_ALPHA_SIZE, 8,
     EGL_CONFIG_CAVEAT, EGL_NONE,
     EGL_NONE
   };
-  printf("%x %x %x %x", EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT, EGL_SURFACE_TYPE, EGL_WINDOW_BIT);
-  printf("%x %x %x %x", EGL_BLUE_SIZE, EGL_GREEN_SIZE, EGL_RED_SIZE, EGL_DEPTH_SIZE);
-  printf("%x %x", EGL_CONFIG_CAVEAT, EGL_NONE);
   EGLConfig config;
   EGLint num_configs;
   if (!eglChooseConfig(e_dpy, attribs, &config, 1, &num_configs)) {
@@ -76,17 +79,16 @@ createWindow(Display* x_dpy, EGLDisplay e_dpy, char* app_name, uint32_t w, uint3
     EGL_CONTEXT_CLIENT_VERSION, 2,
     EGL_NONE
   };
-  EGLContext e_ctx = eglCreateContext(e_dpy, config, EGL_NO_CONTEXT, ctx_attribs);
+  e_ctx = eglCreateContext(e_dpy, config, EGL_NO_CONTEXT, ctx_attribs);
   if (!e_ctx) {
     fprintf(stderr, "eglCreateContext failed\n");
     exit(1);
   }
-  EGLSurface e_surf = eglCreateWindowSurface(e_dpy, config, win, NULL);
+  e_surf = eglCreateWindowSurface(e_dpy, config, win, NULL);
   if (!e_surf) {
     fprintf(stderr, "eglCreateWindowSurface failed\n");
     exit(1);
   }
-
   wm_delete_window = XInternAtom(x_dpy, "WM_DELETE_WINDOW", True);
   if (wm_delete_window != None) {
     XSetWMProtocols(x_dpy, win, &wm_delete_window, 1);
@@ -106,22 +108,18 @@ createWindow(Display* x_dpy, EGLDisplay e_dpy, char* app_name, uint32_t w, uint3
     }
     if (ev.type == ConfigureNotify) {
       EGLEvent e = {1, ev.xconfigure.width, ev.xconfigure.height};
+      printf("Creating");
       return e;
     }
   }
 }
 
-void
-setEvent(EGLEvent e) {
-  printf("%d", e.code);
-}
-
 EGLEvent
-processEvents(Display* xapy) {
+processEvents(Display* x_dpy, EGLDisplay e_dpy) {
   EGLEvent e;
   e.code = 0;
   XEvent ev;
-  XNextEvent(xapy, &ev);
+  XNextEvent(x_dpy, &ev);
   switch (ev.type) {
   case ConfigureNotify:
     e.code = 1;
@@ -149,16 +147,12 @@ processEvents(Display* xapy) {
     }
     break;
   }
+  if (eglSwapBuffers(e_dpy, e_surf) == EGL_FALSE) {
+    fprintf(stderr, "eglSwapBuffer failed\n");
+    exit(1);
+  }
   return e;
 }
-
-// void
-// swapBuffers(void) {
-//   if (eglSwapBuffers(e_dpy, e_surf) == EGL_FALSE) {
-//     fprintf(stderr, "eglSwapBuffer failed\n");
-//     exit(1);
-//   }
-// }
 
 void createContext(EGLDisplay *out_dpy, EGLContext *out_ctx, EGLSurface *out_surf) {
   EGLDisplay e_dpy = eglGetDisplay(EGL_DEFAULT_DISPLAY);
