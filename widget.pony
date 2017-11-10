@@ -16,4 +16,4 @@ class Widget is TWidget
     _children.push(w)
 
   fun ref removeWidget(w: TWidget, delay: U32 = 0) ? =>
-    _children.delete(_children.find(w))
+    _children.delete(_children.find(w)?)?

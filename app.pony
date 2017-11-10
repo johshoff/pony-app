@@ -42,7 +42,10 @@ primitive _EGLDisplayHandle
 primitive _EGLConfigHandle
 primitive _EGLContextHandle
 primitive _EGLSurfaceHandle
-type EGLEvent is (U8, F32, F32)
+struct EGLEvent
+  var code: U8 = 0
+  var x: F32 = 0
+  var y: F32 = 0
 
 primitive GLUtil
   fun createProgram(vertexSrc: String, fragmentSrc: String) =>
@@ -55,7 +58,7 @@ primitive Assets
   fun monospace() =>
     "/usr/share/fonts/truetype/droid/DroidSansMono.ttf"
 
-  fun asset(name: String): File ? =>
+  fun asset(name: String, ambientAuth: AmbientAuth): File ? =>
     """
     Provides access to application-bundled assets.
 
@@ -70,9 +73,9 @@ primitive Assets
     For consistency when debugging on a desktop, assets are read from a
     directory named assets under the current working directory.
     """
-    let caps = recover val FileCaps.set(FileRead).set(FileStat) end
+    let caps = recover val FileCaps.>set(FileRead).>set(FileStat) end
     if Platform.windows() or Platform.linux() or Platform.osx() then
-      OpenFile(FilePath(None, Path.join(Path.cwd(), Path.join("assets", name)), caps)) as File
+      OpenFile(FilePath(ambientAuth, Path.join(Path.cwd(), Path.join("assets", name)), caps)?) as File
     else
       error
     end
@@ -113,13 +116,13 @@ class App
       _env.out.print("eglBindAPI failed")
     end
     let attribs: Array[U16] = [
-      EGLRenderableType(), EGLOpenGLES2Bit(),
-      EGLSurfaceType(), EGLWindowBit(),
-      EGLBlueSize(), 8,
-      EGLGreenSize(), 8,
-      EGLRedSize(), 8,
-      EGLDepthSize(), 16,
-      EGLConfigCaveat(), EGLNONE(),
+      EGLRenderableType(); EGLOpenGLES2Bit()
+      EGLSurfaceType(); EGLWindowBit()
+      EGLBlueSize(); 8
+      EGLGreenSize(); 8
+      EGLRedSize(); 8
+      EGLDepthSize(); 16
+      EGLConfigCaveat(); EGLNONE()
       EGLNONE()
     ]
     // var config = Pointer[_EGLConfigHandle]
@@ -132,11 +135,15 @@ class App
     // end
     let e_ctx = Pointer[_EGLContextHandle]
     let e_surf = Pointer[_EGLSurfaceHandle]
-    (var c, var x, var y) = @createWindow[EGLEvent](x_dpy, e_dpy, _title.cstring(), U32(_width), U32(_height))
+    let e_glEvent = @createWindow[EGLEvent](x_dpy, e_dpy, _title.cstring(), U32(_width), U32(_height))
+    var c = e_glEvent.code
+    var x = e_glEvent.x
+    var y = e_glEvent.y
     _is_running = true
     _resize(y, x)
 
-    let vertexShader = """#version 100
+    let vertexShader = """
+    #version 100
     uniform vec2 offset;
 
     attribute vec4 position;
@@ -147,7 +154,8 @@ class App
       gl_Position = position + offset4;
     }"""
 
-    let fragmentShader = """#version 100
+    let fragmentShader = """
+    #version 100
     precision mediump float;
     uniform vec4 color;
     void main() {
@@ -195,7 +203,10 @@ class App
         //Initialize Modelview Matrix glMatrixMode( GL_MODELVIEW ); glLoadIdentity();
         // var xev: Pointer[_EGLConfigHandle]
         // @XNextEvent[None](x_dpy, xev)
-        (c, x, y) = @processEvents[EGLEvent](x_dpy, e_dpy)
+        let e_glEvent' = @processEvents[EGLEvent](x_dpy, e_dpy)
+        c = e_glEvent'.code
+        x = e_glEvent'.x
+        y = e_glEvent'.y
         match c
         | 1 => _resize(y, x)
         | 2 => _processInput(c, x, y)
